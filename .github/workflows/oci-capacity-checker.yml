@@ -2,7 +2,7 @@ name: OCI ARM Capacity Checker
 
 on:
   schedule:
-    - cron: '0 * * * *' # Run every hour (saves minutes)
+    - cron: '*/10 * * * *' # Run every 10 minutes (Free on Public Repo)
   workflow_dispatch: # Allow manual trigger
 
 jobs:
