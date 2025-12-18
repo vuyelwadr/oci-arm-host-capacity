@@ -1,16 +1,52 @@
 # Resolving Oracle Cloud "Out of Capacity" issue and getting free VPS with 4 ARM cores / 24GB of memory
 
-<p align="center">
-  <a href="https://github.com/hitrov/oci-arm-host-capacity/actions"><img src="https://github.com/hitrov/oci-arm-host-capacity/workflows/Tests/badge.svg" alt="Test"></a>
-</p>
+# OCI ARM Host Capacity Checker (GitHub Actions)
 
-**Update 2024:** The script is still functional, but many Reddit users now recommend upgrading to Pay As You Go (PAYG) for the best experience. With PAYG, you'll continue to enjoy all the free benefits without any additional cost, but you'll also receive priority for launching instances and are less likely to face "Out of host capacity" errors. Additionally, PAYG unlocks more types of OCI resources, including free Kubernetes-related infrastructure if that's something you're interested in. It's important to set up budget alerts as a safety net and be mindful of the resources you deploy and their associated costs. This way, you can take full advantage of PAYG while keeping your spending in check.
+This repo runs a script every 20 minutes via **GitHub Actions** to automatically retry creating an Oracle Cloud "Always Free" ARM instance (4 OCPUs, 24GB RAM) until capacity becomes available.
 
-Very neat and useful configuration was recently [announced](https://blogs.oracle.com/cloud-infrastructure/post/moving-to-ampere-a1-compute-instances-on-oracle-cloud-infrastructure-oci) at Oracle Cloud Infrastructure (OCI) blog as a part of Always Free tier. Sometimes it's complicated to launch an instance due to the "Out of Capacity" error. Here we're solving that issue as Oracle constantly adds capacity from time to time.
+## How it works
+1. **GitHub Actions** triggers the workflow defined in `.github/workflows/oci-capacity-checker.yml`.
+2. It sets up PHP, loads your OCI credentials from **GitHub Secrets**, and runs the script.
+3. If capacity is found, the instance is created, and you will see it in your OCI Console.
+4. If out of capacity, it logs the error and exits (next run in 20 mins).
 
-> Each tenancy gets the first 3,000 OCPU hours and 18,000 GB hours per month for free to create Ampere A1 Compute instances using the VM.Standard.A1.Flex shape (equivalent to 4 OCPUs and 24 GB of memory).
+## Setup Guide
 
-This approach requires **PHP 7.x or 8.x** and **composer** installed and will call "LaunchInstance" OCI API [endpoint](https://docs.oracle.com/en-us/iaas/api/#/en/iaas/20160918/Instance/LaunchInstance). We'll utilise the [package](https://packagist.org/packages/hitrov/oci-api-php-request-sign) which I've written (and [published](https://github.com/hitrov/oci-api-php-request-sign)) some time ago, here's the [article](https://hitrov.medium.com/creating-mini-php-sdk-to-sign-oracle-cloud-infrastructure-api-requests-d91a224c7008?sk=5b4405c1124bfeac30a370630fd94126).
+### 1. Push to GitHub
+If you haven't already:
+```bash
+git init
+git add .
+git commit -m "Setup OCI capacity checker"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/oci-arm-host-capacity.git
+git push -u origin main
+```
+
+### 2. Configure Secrets
+Go to **Settings** -> **Secrets and variables** -> **Actions** -> **New repository secret**.
+Add the following secrets (values from your OCI config):
+
+| Secret Name | Value Description |
+|---|---|
+| `OCI_USER_ID` | Your user OCID (`ocid1.user...`) |
+| `OCI_TENANCY_ID` | Your tenancy OCID (`ocid1.tenancy...`) |
+| `OCI_KEY_FINGERPRINT` | Fingerprint of your API key |
+| `OCI_REGION` | e.g. `eu-frankfurt-1` |
+| `OCI_SUBNET_ID` | The OCID of the subnet to spawn in |
+| `OCI_IMAGE_ID` | The OCID of the ARM image |
+| `OCI_SSH_PUBLIC_KEY` | Your SSH public key content (e.g. `ssh-ed25519 ...`) |
+| `OCI_PRIVATE_KEY_CONTENT` | The **content** of your `~/.oci/api_key.pem` file |
+
+### 3. Check Progress
+- Go to the **Actions** tab in your repo.
+- You will see "OCI ARM Capacity Checker" workflow runs.
+- Green check = Script ran successfully (checked capacity).
+- Click into a run to see logs. If it says "Out of host capacity", it's working and waiting for Oracle to free up space.
+
+## Configuration
+The retry frequency is set to **20 minutes** in `.github/workflows/oci-capacity-checker.yml` to stay within GitHub's free tier limits.
+v/oci-api-php-request-sign)) some time ago, here's the [article](https://hitrov.medium.com/creating-mini-php-sdk-to-sign-oracle-cloud-infrastructure-api-requests-d91a224c7008?sk=5b4405c1124bfeac30a370630fd94126).
 
 If you prefer article style, here's a link to [Medium](https://hitrov.medium.com/resolving-oracle-cloud-out-of-capacity-issue-and-getting-free-vps-with-4-arm-cores-24gb-of-6ecd5ede6fcc?sk=01d761f7cd80c77e0fed773972f4d1a8)
 

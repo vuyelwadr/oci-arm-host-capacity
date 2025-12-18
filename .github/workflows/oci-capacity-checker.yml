@@ -1,0 +1,42 @@
+name: OCI ARM Capacity Checker
+
+on:
+  schedule:
+    - cron: '*/20 * * * *' # Run every 20 minutes
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  check-capacity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: curl, json, mbstring
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run Capacity Checker
+        env:
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_USER_ID: ${{ secrets.OCI_USER_ID }}
+          OCI_TENANCY_ID: ${{ secrets.OCI_TENANCY_ID }}
+          OCI_KEY_FINGERPRINT: ${{ secrets.OCI_KEY_FINGERPRINT }}
+          OCI_PRIVATE_KEY_FILENAME: "oci_api_key.pem"
+          OCI_SUBNET_ID: ${{ secrets.OCI_SUBNET_ID }}
+          OCI_IMAGE_ID: ${{ secrets.OCI_IMAGE_ID }}
+          OCI_SSH_PUBLIC_KEY: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
+          OCI_OCPUS: 4
+          OCI_MEMORY_IN_GBS: 24
+        run: |
+          # Write the private key to a file as expected by the script
+          echo "${{ secrets.OCI_PRIVATE_KEY_CONTENT }}" > oci_api_key.pem
+          chmod 600 oci_api_key.pem
+          
+          # Run the script
+          php index.php
